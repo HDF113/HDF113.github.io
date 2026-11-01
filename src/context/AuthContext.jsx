@@ -78,10 +78,12 @@ export function AuthProvider({ children }) {
 
   // Sign in with GitHub OAuth
   const signInWithGitHub = async () => {
+    // Always redirect back to the production site after OAuth
+    const redirectTo = 'https://hdf113.github.io'
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo,
       },
     })
     if (error) console.error('GitHub sign-in error:', error)
