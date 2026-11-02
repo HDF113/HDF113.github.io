@@ -39,7 +39,7 @@
 /* Stats grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 16px;
 }
 
@@ -247,37 +247,100 @@
   border: 1px solid var(--border);
 }
 
-/* Files table */
-.files-table {
-  padding: 0;
-  overflow-x: auto;
+/* Files grid (card-based) */
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 }
 
-.files-table table {
+.file-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.file-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.file-icon-large {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.file-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.modal-content {
+  max-width: 900px;
   width: 100%;
-  border-collapse: collapse;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.files-table th,
-.files-table td {
-  padding: 12px 16px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
+.file-preview-area {
+  margin-top: 12px;
 }
 
-.files-table th {
+/* Resume section */
+.resume-section {
+  padding: 32px;
+}
+
+/* Artwork image */
+.artwork-image {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+}
+
+/* Grid utilities */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+/* Language button */
+.lang-btn {
   font-size: 0.8rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-}
-
-.files-table tr:last-child td {
-  border-bottom: none;
-}
-
-.files-table tr:hover td {
-  background: var(--bg-hover);
+  font-weight: 600;
+  min-width: 40px;
 }
 
 .file-name {
@@ -396,10 +459,18 @@
 /* Responsive */
 @media (max-width: 768px) {
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .projects-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .files-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-3 {
     grid-template-columns: 1fr;
   }
 
