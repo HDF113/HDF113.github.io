@@ -2,10 +2,15 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, BUCKETS } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../i18n/translations'
 
 export default function FileUpload() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { lang } = useLanguage()
+  const t = translations[lang]
+
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('general')
@@ -15,9 +20,29 @@ export default function FileUpload() {
   const [dragActive, setDragActive] = useState(false)
   const inputRef = useRef(null)
 
-  const categoryOptions = [
-    'general', 'documents', 'images', 'code', 'archives', 'videos', 'audio', 'data', 'other'
-  ]
+  const categoryOptions = lang === 'zh'
+    ? [
+        { value: 'general', label: '\u4E00\u822C' },
+        { value: 'documents', label: '\u6587\u6863' },
+        { value: 'images', label: '\u56FE\u7247' },
+        { value: 'code', label: '\u4EE3\u7801' },
+        { value: 'archives', label: '\u538B\u7F29\u5305' },
+        { value: 'videos', label: '\u89C6\u9891' },
+        { value: 'audio', label: '\u97F3\u9891' },
+        { value: 'data', label: '\u6570\u636E' },
+        { value: 'other', label: '\u5176\u4ED6' },
+      ]
+    : [
+        { value: 'general', label: 'General' },
+        { value: 'documents', label: 'Documents' },
+        { value: 'images', label: 'Images' },
+        { value: 'code', label: 'Code' },
+        { value: 'archives', label: 'Archives' },
+        { value: 'videos', label: 'Videos' },
+        { value: 'audio', label: 'Audio' },
+        { value: 'data', label: 'Data' },
+        { value: 'other', label: 'Other' },
+      ]
 
   const handleFileSelect = (selectedFile) => {
     if (!selectedFile) return
@@ -37,26 +62,23 @@ export default function FileUpload() {
   const handleUpload = async () => {
     setError('')
     if (!file) {
-      setError('Please select a file to upload.')
+      setError(t.files.selectFile)
       return
     }
 
     setUploading(true)
 
     try {
-      // Generate a unique file path
       const fileExt = file.name.split('.').pop() || 'bin'
       const uniqueName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
       const filePath = `${category}/${uniqueName}`
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from(BUCKETS.FILES)
         .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
-      // Insert metadata into database
       const { error: dbError } = await supabase.from('file_entries').insert({
         name: name.trim() || file.name,
         description: description.trim() || null,
@@ -72,7 +94,7 @@ export default function FileUpload() {
 
       navigate('/files')
     } catch (err) {
-      setError('Upload failed: ' + err.message)
+      setError(t.files.uploadFailed + ': ' + err.message)
     } finally {
       setUploading(false)
     }
@@ -93,13 +115,12 @@ export default function FileUpload() {
   return (
     <div className="container">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
-        <h1>Upload File</h1>
-        <button className="btn btn-sm" onClick={() => navigate(-1)}>Cancel</button>
+        <h1>{t.files.uploadFile}</h1>
+        <button className="btn btn-sm" onClick={() => navigate(-1)}>{t.common.cancel}</button>
       </div>
 
       {error && <div className="error-banner mb-2">{error}</div>}
 
-      {/* Drop zone */}
       <div
         className={`drop-zone ${dragActive ? 'active' : ''} ${file ? 'has-file' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
@@ -118,41 +139,41 @@ export default function FileUpload() {
             <div className="file-icon">&#128196;</div>
             <div>
               <div className="file-name">{file.name}</div>
-              <div className="text-muted">{formatFileSize(file.size)} - {file.type || 'unknown type'}</div>
+              <div className="text-muted">{formatFileSize(file.size)} - {file.type || t.files.unknownType}</div>
             </div>
             <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); setFile(null) }}>
-              Change
+              {t.files.changeFile}
             </button>
           </div>
         ) : (
           <div className="drop-zone-prompt">
             <div className="empty-state-icon">&#8682;</div>
-            <p>Drag &amp; drop a file here, or click to select</p>
+            <p>{t.files.dragDrop}</p>
           </div>
         )}
       </div>
 
       <div className="form-group mt-3">
-        <label className="form-label">Display Name</label>
-        <input type="text" className="form-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="File display name" />
+        <label className="form-label">{t.files.displayName}</label>
+        <input type="text" className="form-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t.files.displayNamePlaceholder} />
       </div>
 
       <div className="form-group">
-        <label className="form-label">Description</label>
-        <input type="text" className="form-input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional description" />
+        <label className="form-label">{t.files.description}</label>
+        <input type="text" className="form-input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t.files.descriptionPlaceholder} />
       </div>
 
       <div className="form-group">
-        <label className="form-label">Category</label>
+        <label className="form-label">{t.files.category}</label>
         <select className="form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
           {categoryOptions.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
+            <option key={cat.value} value={cat.value}>{cat.label}</option>
           ))}
         </select>
       </div>
 
       <button className="btn btn-primary" onClick={handleUpload} disabled={uploading || !file}>
-        {uploading ? 'Uploading...' : 'Upload File'}
+        {uploading ? t.files.uploading : t.files.uploadFile}
       </button>
     </div>
   )
