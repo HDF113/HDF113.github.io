@@ -5,6 +5,8 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { supabase, BUCKETS } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../i18n/translations'
 import { OwnerOnly } from '../components/AccessControl'
 import CommentSection from '../components/CommentSection'
 
@@ -12,6 +14,9 @@ export default function ArticleDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { isOwner } = useAuth()
+  const { lang } = useLanguage()
+  const t = translations[lang]
+
   const [article, setArticle] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -31,7 +36,6 @@ export default function ArticleDetail() {
         return
       }
 
-      // Non-owners cannot view drafts
       if (!data.is_published && !isOwner) {
         setNotFound(true)
         setLoading(false)
@@ -41,7 +45,6 @@ export default function ArticleDetail() {
       setArticle(data)
       setLoading(false)
 
-      // Increment view count (fire and forget)
       if (data.is_published) {
         await supabase
           .from('articles')
@@ -54,9 +57,8 @@ export default function ArticleDetail() {
   }, [slug, isOwner])
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this article? This action cannot be undone.')) return
+    if (!confirm(t.blog.confirmDelete)) return
 
-    // Delete associated images from storage
     if (article.cover_image_url) {
       const pathMatch = article.cover_image_url.match(/\/storage\/v1\/object\/public\/articles\/(.+)$/)
       if (pathMatch) {
@@ -68,7 +70,7 @@ export default function ArticleDetail() {
     if (!error) {
       navigate('/articles')
     } else {
-      alert('Failed to delete article: ' + error.message)
+      alert(t.blog.deleteFailed + ': ' + error.message)
     }
   }
 
@@ -81,9 +83,9 @@ export default function ArticleDetail() {
       <div className="container">
         <div className="empty-state">
           <div className="empty-state-icon">&#128533;</div>
-          <h2>Article Not Found</h2>
-          <p className="text-muted mt-1">The article you are looking for does not exist or is not published.</p>
-          <Link to="/articles" className="btn mt-2">Back to Articles</Link>
+          <h2>{t.blog.notFound}</h2>
+          <p className="text-muted mt-1">{t.blog.notFoundDesc}</p>
+          <Link to="/articles" className="btn mt-2">{t.blog.backToList}</Link>
         </div>
       </div>
     )
@@ -92,25 +94,22 @@ export default function ArticleDetail() {
   return (
     <div className="container">
       <article className="article-detail">
-        {/* Breadcrumb */}
         <div className="breadcrumb mb-2">
-          <Link to="/articles" className="text-secondary">Articles</Link>
+          <Link to="/articles" className="text-secondary">{t.blog.title}</Link>
           <span className="text-muted">/</span>
           <span>{article.title}</span>
         </div>
 
-        {/* Title */}
         <h1 className="article-title">{article.title}</h1>
 
-        {/* Meta */}
         <div className="article-meta-bar">
           <span className="text-muted">
             {new Date(article.created_at).toLocaleDateString()}
           </span>
-          <span className="text-muted">{article.views || 0} views</span>
+          <span className="text-muted">{article.views || 0} {t.blog.views}</span>
           {!article.is_published && (
             <span className="badge" style={{ background: 'var(--warning)', color: '#000', borderColor: 'var(--warning)' }}>
-              Draft
+              {t.blog.draft}
             </span>
           )}
           {article.tags?.length > 0 && (
@@ -122,7 +121,6 @@ export default function ArticleDetail() {
           )}
         </div>
 
-        {/* Cover image */}
         {article.cover_image_url && (
           <img
             src={article.cover_image_url}
@@ -131,7 +129,6 @@ export default function ArticleDetail() {
           />
         )}
 
-        {/* Video */}
         {article.video_url && (
           <div className="article-video mt-2">
             {article.video_url.includes('youtube') || article.video_url.includes('youtu.be') ? (
@@ -158,25 +155,22 @@ export default function ArticleDetail() {
           </div>
         )}
 
-        {/* Content */}
         <div className="markdown-body mt-3">
           <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
             {article.content}
           </ReactMarkdown>
         </div>
 
-        {/* Owner controls */}
         <OwnerOnly>
           <div className="owner-controls card mt-3">
-            <h4>Manage Article</h4>
+            <h4>{t.blog.manageArticle}</h4>
             <div className="flex gap-2 mt-2 flex-wrap">
-              <Link to={`/articles/${article.slug}/edit`} className="btn btn-sm">Edit</Link>
-              <button className="btn btn-danger btn-sm" onClick={handleDelete}>Delete</button>
+              <Link to={`/articles/${article.slug}/edit`} className="btn btn-sm">{t.common.edit}</Link>
+              <button className="btn btn-danger btn-sm" onClick={handleDelete}>{t.common.delete}</button>
             </div>
           </div>
         </OwnerOnly>
 
-        {/* Comments */}
         <CommentSection targetType="article" targetId={article.id} />
       </article>
     </div>
