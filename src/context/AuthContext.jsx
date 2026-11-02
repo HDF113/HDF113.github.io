@@ -78,8 +78,8 @@ export function AuthProvider({ children }) {
 
   // Sign in with GitHub OAuth
   const signInWithGitHub = async () => {
-    // Always redirect back to the production site after OAuth
-    const redirectTo = 'https://hdf113.github.io'
+    // Use root path; Supabase resolves this against the configured site_url
+    const redirectTo = '/'
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
