@@ -5,11 +5,15 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { supabase, BUCKETS } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../i18n/translations'
 
 export default function ArticleEditor() {
-  const { slug } = useParams() // If editing, slug will be provided
+  const { slug } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { lang } = useLanguage()
+  const t = translations[lang]
   const fileInputRef = useRef(null)
 
   const [title, setTitle] = useState('')
@@ -25,7 +29,6 @@ export default function ArticleEditor() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState('')
 
-  // Load existing article if editing
   useEffect(() => {
     if (slug) {
       supabase
@@ -81,13 +84,12 @@ export default function ArticleEditor() {
 
       setCoverImage(urlData.publicUrl)
     } catch (err) {
-      setError('Failed to upload image: ' + err.message)
+      setError(t.blog.uploadFailed + ': ' + err.message)
     } finally {
       setUploadingImage(false)
     }
   }
 
-  // Insert image into markdown content at cursor position
   const handleContentImageUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -110,11 +112,10 @@ export default function ArticleEditor() {
         .from(BUCKETS.ARTICLES)
         .getPublicUrl(filePath)
 
-      // Insert markdown image syntax
       const markdownImage = `\n![${file.name}](${urlData.publicUrl})\n`
       setContent((prev) => prev + markdownImage)
     } catch (err) {
-      setError('Failed to upload image: ' + err.message)
+      setError(t.blog.uploadFailed + ': ' + err.message)
     } finally {
       setUploadingImage(false)
     }
@@ -123,7 +124,7 @@ export default function ArticleEditor() {
   const handleSave = async (publish = null) => {
     setError('')
     if (!title.trim() || !content.trim()) {
-      setError('Title and content are required.')
+      setError(t.blog.titleRequired)
       return
     }
 
@@ -162,7 +163,7 @@ export default function ArticleEditor() {
 
       navigate(`/articles/${articleSlug}`)
     } catch (err) {
-      setError('Failed to save article: ' + err.message)
+      setError(t.blog.saveFailed + ': ' + err.message)
     } finally {
       setSaving(false)
     }
@@ -175,46 +176,38 @@ export default function ArticleEditor() {
   return (
     <div className="container">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
-        <h1>{existingArticle ? 'Edit Article' : 'New Article'}</h1>
-        <button
-          className="btn btn-sm"
-          onClick={() => navigate(-1)}
-        >
-          Cancel
-        </button>
+        <h1>{existingArticle ? t.blog.editArticle : t.blog.newArticle}</h1>
+        <button className="btn btn-sm" onClick={() => navigate(-1)}>{t.common.cancel}</button>
       </div>
 
-      {error && (
-        <div className="error-banner mb-2">{error}</div>
-      )}
+      {error && <div className="error-banner mb-2">{error}</div>}
 
       <div className="editor-layout">
-        {/* Left: Form fields */}
         <div className="editor-form">
           <div className="form-group">
-            <label className="form-label">Title *</label>
+            <label className="form-label">{t.blog.fieldTitle} *</label>
             <input
               type="text"
               className="form-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Article title"
+              placeholder={t.blog.fieldTitlePlaceholder}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Excerpt</label>
+            <label className="form-label">{t.blog.fieldExcerpt}</label>
             <input
               type="text"
               className="form-input"
               value={excerpt}
               onChange={(e) => setExcerpt(e.target.value)}
-              placeholder="Brief summary (auto-generated if empty)"
+              placeholder={t.blog.fieldExcerptPlaceholder}
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Tags (comma-separated)</label>
+            <label className="form-label">{t.blog.fieldTags}</label>
             <input
               type="text"
               className="form-input"
@@ -225,21 +218,21 @@ export default function ArticleEditor() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Cover Image</label>
+            <label className="form-label">{t.blog.fieldCoverImage}</label>
             <div className="flex gap-1 items-center">
               <input
                 type="text"
                 className="form-input"
                 value={coverImage}
                 onChange={(e) => setCoverImage(e.target.value)}
-                placeholder="Image URL or upload"
+                placeholder={t.blog.fieldCoverImagePlaceholder}
               />
               <button
                 className="btn btn-sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingImage}
               >
-                {uploadingImage ? 'Uploading...' : 'Upload'}
+                {uploadingImage ? t.blog.uploading : t.blog.upload}
               </button>
               <input
                 ref={fileInputRef}
@@ -255,7 +248,7 @@ export default function ArticleEditor() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Video URL (YouTube, Bilibili, or direct link)</label>
+            <label className="form-label">{t.blog.fieldVideoUrl}</label>
             <input
               type="text"
               className="form-input"
@@ -267,7 +260,7 @@ export default function ArticleEditor() {
 
           <div className="form-group">
             <label className="form-label">
-              Content (Markdown) *
+              {t.blog.fieldContent} *
               <button
                 type="button"
                 className="btn btn-sm ml-1"
@@ -281,7 +274,7 @@ export default function ArticleEditor() {
                 disabled={uploadingImage}
                 style={{ marginLeft: '8px' }}
               >
-                + Insert Image
+                + {t.blog.insertImage}
               </button>
             </label>
             <textarea
@@ -289,7 +282,7 @@ export default function ArticleEditor() {
               rows="20"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="# Your article content in Markdown..."
+              placeholder={t.blog.fieldContentPlaceholder}
             />
           </div>
 
@@ -299,28 +292,27 @@ export default function ArticleEditor() {
               onClick={() => handleSave(true)}
               disabled={saving}
             >
-              {saving ? 'Saving...' : 'Publish'}
+              {saving ? t.blog.saving : t.blog.publish}
             </button>
             <button
               className="btn"
               onClick={() => handleSave(false)}
               disabled={saving}
             >
-              Save as Draft
+              {t.blog.saveDraft}
             </button>
           </div>
         </div>
 
-        {/* Right: Live preview */}
         <div className="editor-preview">
-          <h4 className="text-secondary mb-1">Preview</h4>
+          <h4 className="text-secondary mb-1">{t.blog.preview}</h4>
           <div className="markdown-body preview-content">
             {content ? (
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                 {content}
               </ReactMarkdown>
             ) : (
-              <p className="text-muted">Start writing to see preview...</p>
+              <p className="text-muted">{t.blog.startWriting}</p>
             )}
           </div>
         </div>
@@ -328,4 +320,3 @@ export default function ArticleEditor() {
     </div>
   )
 }
-
