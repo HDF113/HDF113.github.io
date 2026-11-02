@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+import { translations } from '../i18n/translations'
 
 export default function CommentSection({ targetType, targetId }) {
   const { user, isAuthenticated, profile, isOwner } = useAuth()
+  const { lang } = useLanguage()
+  const t = translations[lang]
+
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [newComment, setNewComment] = useState('')
@@ -101,14 +106,13 @@ export default function CommentSection({ targetType, targetId }) {
   }
 
   const handleDeleteComment = async (commentId) => {
-    if (!confirm('Delete this comment?')) return
+    if (!confirm(t.comments.confirmDelete)) return
     const { error } = await supabase.from('comments').delete().eq('id', commentId)
     if (!error) {
       setComments((prev) => prev.filter((c) => c.id !== commentId && c.parent_id !== commentId))
     }
   }
 
-  // Build comment tree (top-level + replies)
   const topLevel = comments.filter((c) => !c.parent_id)
   const getReplies = (parentId) => comments.filter((c) => c.parent_id === parentId)
 
@@ -116,16 +120,16 @@ export default function CommentSection({ targetType, targetId }) {
     const date = new Date(timestamp)
     const now = new Date()
     const diff = (now - date) / 1000
-    if (diff < 60) return 'just now'
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    if (diff < 60) return t.comments.justNow
+    if (diff < 3600) return `${Math.floor(diff / 60)}${t.comments.minutesAgo}`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}${t.comments.hoursAgo}`
     return date.toLocaleDateString()
   }
 
   if (loading) {
     return (
       <section className="comments-section mt-3">
-        <h3>Comments</h3>
+        <h3>{t.comments.title}</h3>
         <div className="loading"><div className="loading-spinner" /></div>
       </section>
     )
@@ -133,15 +137,14 @@ export default function CommentSection({ targetType, targetId }) {
 
   return (
     <section className="comments-section mt-3">
-      <h3>Comments ({topLevel.length})</h3>
+      <h3>{t.comments.title} ({topLevel.length})</h3>
 
-      {/* New comment form */}
       {isAuthenticated ? (
         <div className="comment-form mt-2">
           <textarea
             className="form-textarea"
             rows="3"
-            placeholder="Write a comment..."
+            placeholder={t.comments.writeComment}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
           />
@@ -150,30 +153,29 @@ export default function CommentSection({ targetType, targetId }) {
             onClick={handleSubmit}
             disabled={submitting || !newComment.trim()}
           >
-            {submitting ? 'Posting...' : 'Post Comment'}
+            {submitting ? t.comments.posting : t.comments.postComment}
           </button>
         </div>
       ) : (
         <div className="comment-login-prompt card mt-2 text-center">
-          <p className="text-secondary">Sign in to leave a comment.</p>
+          <p className="text-secondary">{t.comments.signInToComment}</p>
         </div>
       )}
 
-      {/* Comments list */}
       {topLevel.length === 0 ? (
-        <p className="text-muted mt-2 text-center">No comments yet. Be the first to comment!</p>
+        <p className="text-muted mt-2 text-center">{t.comments.noComments}</p>
       ) : (
         <div className="comments-list mt-2">
           {topLevel.map((comment) => (
             <div key={comment.id} className="comment-item">
               <div className="comment-header">
                 <span className="comment-author">
-                  {comment.profiles?.display_name || comment.profiles?.username || 'Anonymous'}
+                  {comment.profiles?.display_name || comment.profiles?.username || t.comments.anonymous}
                 </span>
                 <span className="text-muted">{formatTime(comment.created_at)}</span>
               </div>
               {comment.is_deleted ? (
-                <p className="text-muted italic">[deleted]</p>
+                <p className="text-muted italic">[{t.comments.deleted}]</p>
               ) : (
                 <p className="comment-content">{comment.content}</p>
               )}
@@ -183,7 +185,7 @@ export default function CommentSection({ targetType, targetId }) {
                     className="btn btn-sm"
                     onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                   >
-                    Reply
+                    {t.comments.reply}
                   </button>
                 )}
                 {(isOwner || comment.author_id === user?.id) && !comment.is_deleted && (
@@ -191,18 +193,17 @@ export default function CommentSection({ targetType, targetId }) {
                     className="btn btn-danger btn-sm"
                     onClick={() => handleDeleteComment(comment.id)}
                   >
-                    Delete
+                    {t.common.delete}
                   </button>
                 )}
               </div>
 
-              {/* Reply form */}
               {replyingTo === comment.id && (
                 <div className="comment-reply-form mt-1">
                   <textarea
                     className="form-textarea"
                     rows="2"
-                    placeholder="Write a reply..."
+                    placeholder={t.comments.writeReply}
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                   />
@@ -212,26 +213,25 @@ export default function CommentSection({ targetType, targetId }) {
                       onClick={() => handleReply(comment.id)}
                       disabled={submitting || !replyContent.trim()}
                     >
-                      Post Reply
+                      {t.comments.postReply}
                     </button>
-                    <button className="btn btn-sm" onClick={() => setReplyingTo(null)}>Cancel</button>
+                    <button className="btn btn-sm" onClick={() => setReplyingTo(null)}>{t.common.cancel}</button>
                   </div>
                 </div>
               )}
 
-              {/* Replies */}
               {getReplies(comment.id).length > 0 && (
                 <div className="comment-replies">
                   {getReplies(comment.id).map((reply) => (
                     <div key={reply.id} className="comment-item reply">
                       <div className="comment-header">
                         <span className="comment-author">
-                          {reply.profiles?.display_name || reply.profiles?.username || 'Anonymous'}
+                          {reply.profiles?.display_name || reply.profiles?.username || t.comments.anonymous}
                         </span>
                         <span className="text-muted">{formatTime(reply.created_at)}</span>
                       </div>
                       {reply.is_deleted ? (
-                        <p className="text-muted italic">[deleted]</p>
+                        <p className="text-muted italic">[{t.comments.deleted}]</p>
                       ) : (
                         <p className="comment-content">{reply.content}</p>
                       )}
@@ -241,7 +241,7 @@ export default function CommentSection({ targetType, targetId }) {
                             className="btn btn-danger btn-sm"
                             onClick={() => handleDeleteComment(reply.id)}
                           >
-                            Delete
+                            {t.common.delete}
                           </button>
                         )}
                       </div>
